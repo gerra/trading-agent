@@ -5,7 +5,7 @@ and on demand via `trading-agent evolve [--dry-run]`.
 
 ```mermaid
 flowchart TD
-    A[1. PromotionReviewer.review\nlive paper results ≥ N days] --> B{daily proposal\nbudget left?}
+    A[1. PromotionReviewer.review\nlive paper results ≥ N days] --> B{LLM budget?\n≥3 days since last proposal,\nno challenger under evaluation}
     B -- no --> Z[done]
     B -- yes --> C[2. ContextBuilder.build\nperformance, rejections, code,\npast attempts, market summary]
     C --> D[3. Researcher.research\nClaude + web search → markdown notes\nsaved to data/research/]
@@ -32,8 +32,12 @@ flowchart TD
    summary, the last 25 proposals with outcomes, the strategy contract, indicators, one example
    strategy, current generated sources, and the policy text.
 3. **Research** (`adapters/researcher/anthropic_researcher.py`) — one Claude call with the
-   `web_search` server tool. Output is free-form markdown saved under `data/research/`.
-4. **Propose** — a second call with structured output (`ProposalDraft`). Exactly one proposal.
+   `web_search` server tool, at most every `research_interval_days` (default 7). Output is markdown saved
+   under `data/research/` and reused by the proposal step until it goes stale.
+4. **Propose** — one call with structured output (`ProposalDraft`). Exactly one proposal, at most every
+   `min_days_between_proposals` (default 3), and never while a generated challenger is younger than
+   `promotion_min_days` (one experiment at a time). Typical usage: ~10 proposal calls and ~4 research calls a month.
+   `ta_llm_calls_total{step}` counts them.
 5. **Validate** (`validator.py`) — see gate in the diagram; thresholds live in `settings.evolution`.
    Candidate and baseline (champion, or the same strategy with current params) are run through
    `evolution/runner.py` on the same stored candles (`data/market/`).

@@ -142,7 +142,7 @@ class ContextBuilder:
             strategy_interface_source=(SRC_ROOT / "strategies" / "base.py").read_text(),
             indicators_source=(SRC_ROOT / "strategies" / "indicators.py").read_text(),
             example_strategy_source=(
-                SRC_ROOT / "strategies" / "builtin" / "ema_crossover.py"
+                SRC_ROOT / "strategies" / "builtin" / "trend_breakout.py"
             ).read_text(),
             generated_sources=generated,
             risk_limits=self.s.risk.model_dump(),

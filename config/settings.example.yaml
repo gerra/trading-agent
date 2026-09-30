@@ -19,8 +19,8 @@ exchange:
 
 universe:
   core_symbols: ["kraken:BTC/USD", "kraken:ETH/USD", "kraken:SOL/USD"]   # '<exchange>:<BASE>/<QUOTE>'
-  timeframe: 5m
-  candle_history: 300             # bars fetched per tick
+  timeframe: 15m                  # built-in strategies are tuned for 15m bars (48h channel = 192 bars)
+  candle_history: 600             # bars fetched per tick (Kraken caps OHLC at 720)
   new_listing_max_age_days: 14    # how long a listing counts as "new"
   max_new_listings_tracked: 15
 
@@ -41,6 +41,9 @@ evolution:
   effort: high                    # low | medium | high | xhigh | max
   web_search_max_uses: 8
   max_proposals_per_day: 1
+  min_days_between_proposals: 3   # LLM proposal call at most this often
+  research_interval_days: 7       # web-research call at most this often; notes are reused in between
+  wait_for_pending_challenger: true  # no LLM call while a generated challenger is younger than promotion_min_days
   challenger_allocation_pct: 15   # % of initial capital a new generated strategy gets
   min_backtest_bars: 200
   max_backtest_bars: 3000
@@ -65,7 +68,7 @@ report:
   max_bullets: 10
 
 schedule:
-  tick_minutes: 5
+  tick_minutes: 15
   discovery_minutes: 30
   evolution_hour_utc: 3
   backfill_on_start: true

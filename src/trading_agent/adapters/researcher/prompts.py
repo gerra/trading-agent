@@ -71,7 +71,7 @@ def propose_user_message(ctx: ResearchContext, notes_markdown: str) -> str:
             "# Available indicators (trading_agent/strategies/indicators.py)\n```python\n"
             + ctx.indicators_source
             + "\n```",
-            "# Example strategy (builtin/ema_crossover.py)\n```python\n"
+            "# Example strategy (builtin/trend_breakout.py)\n```python\n"
             + ctx.example_strategy_source
             + "\n```",
             "# Existing generated strategies\n" + generated,

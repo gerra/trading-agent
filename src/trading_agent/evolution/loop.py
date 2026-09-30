@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import structlog
 
@@ -52,25 +53,21 @@ class EvolutionLoop:
             self._record(rec)
             records.append(rec)
 
-        # 2) Daily budget of LLM-driven proposals.
-        today = [
-            ev
-            for ev in self.store.read("evolution", since=now - timedelta(hours=24))
-            if ev.payload.get("kind") != "promotion"
-        ]
-        if len(today) >= self.s.evolution.max_proposals_per_day:
-            log.info("evolution_budget_exhausted", proposals_today=len(today))
+        # 2) Should we spend an LLM call at all today?
+        skip = self._skip_reason(now)
+        if skip:
+            log.info("evolution_skipped", reason=skip)
             return records
 
-        # 3) Research -> propose. Any failure here is recorded, never raised into the scheduler.
+        # 3) Research (web search, at most every research_interval_days) -> propose (one call).
         context = self.context_builder.build()
         proposal_id = f"p{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
         try:
-            notes = self.researcher.research(context)
-            self._save_notes(proposal_id, notes.markdown, notes.sources)
+            notes = self._notes(context, proposal_id, now)
+            self.metrics.llm_calls.labels(step="propose").inc()
             draft = self.researcher.propose(context, notes)
             proposal = Proposal.from_draft(draft, proposal_id)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001 - never raise into the scheduler
             rec = EvolutionRecord(
                 proposal_id=proposal_id,
                 kind="research",
@@ -123,6 +120,59 @@ class EvolutionLoop:
         self._record(rec)
         records.append(rec)
         return records
+
+    # ------------------------------------------------------------ LLM budget
+    def _skip_reason(self, now: datetime) -> str | None:
+        """Reasons not to call the LLM today. Each one saves a full research/propose round."""
+        e = self.s.evolution
+        llm_records = [
+            ev for ev in self.store.read("evolution") if ev.payload.get("kind") != "promotion"
+        ]
+        today = [ev for ev in llm_records if ev.ts >= now - timedelta(hours=24)]
+        if len(today) >= e.max_proposals_per_day:
+            return f"daily budget used ({len(today)}/{e.max_proposals_per_day})"
+        if llm_records:
+            age = now - llm_records[-1].ts
+            if age < timedelta(days=e.min_days_between_proposals):
+                return f"last proposal {age.days}d ago; min gap {e.min_days_between_proposals}d"
+        if e.wait_for_pending_challenger:
+            pending = [
+                entry
+                for entry in self.validator.registry.active_entries()
+                if entry.status == "challenger"
+                and entry.origin == "generated"
+                and now - entry.since < timedelta(days=e.promotion_min_days)
+            ]
+            if pending:
+                return f"challenger {pending[0].id} still under live evaluation ({(now - pending[0].since).days}d/{e.promotion_min_days}d)"
+        return None
+
+    def _notes(self, context, proposal_id: str, now: datetime):  # type: ignore[no-untyped-def]
+        """Reuse the last research notes unless they are older than research_interval_days."""
+        from trading_agent.evolution.proposal import ResearchNotes
+
+        latest = self._latest_notes(now)
+        if latest is not None:
+            log.info("research_notes_reused", path=str(latest[0]))
+            return ResearchNotes(markdown=latest[1], sources=[])
+        self.metrics.llm_calls.labels(step="research").inc()
+        notes = self.researcher.research(context)
+        self._save_notes(proposal_id, notes.markdown, notes.sources)
+        return notes
+
+    def _latest_notes(self, now: datetime) -> tuple[Path, str] | None:
+        files = sorted(self.s.research_dir.glob("*.md"))
+        if not files:
+            return None
+        newest = files[-1]
+        try:
+            written = datetime.fromtimestamp(newest.stat().st_mtime, tz=UTC)
+        except OSError:
+            return None
+        if now - written > timedelta(days=self.s.evolution.research_interval_days):
+            return None
+        text = newest.read_text(encoding="utf-8")
+        return (newest, text) if text.strip() else None
 
     def _record(self, rec: EvolutionRecord) -> None:
         self.store.append(evolution_event(self.clock.now(), rec))

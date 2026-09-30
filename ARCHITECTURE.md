@@ -100,6 +100,7 @@ Schemas: [docs/DATA_SCHEMAS.md](docs/DATA_SCHEMAS.md).
 |---|---|
 | add an exchange / change fees | `config/settings.yaml` (`exchange.fees`), `core/fees.py` defaults |
 | add a hand-written strategy | `strategies/builtin/<name>.py` + an entry in the manifest (or `default_manifest`) |
+| change how often the LLM is called | `settings.evolution.min_days_between_proposals`, `research_interval_days`, `wait_for_pending_challenger`; logic in `evolution/loop.py::_skip_reason` |
 | change risk limits | `config/settings.yaml` (`risk`) — logic in `engine/risk.py` |
 | change what the researcher sees | `evolution/context.py`, prompts in `adapters/researcher/prompts.py` |
 | tighten/loosen the code policy | `evolution/sandbox.py` (then update SAFETY.md) |

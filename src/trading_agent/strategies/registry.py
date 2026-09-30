@@ -48,35 +48,31 @@ class Manifest(BaseModel):
 
 
 def default_manifest(now: datetime) -> Manifest:
+    """Initial book. allocation_pct is initial funding; the remainder stays in reserve for challengers."""
+
+    def entry(sid: str, module: str, cls: str, status: Status, pct: float) -> StrategyEntry:
+        return StrategyEntry(
+            id=sid,
+            origin="builtin",
+            module=f"trading_agent.strategies.builtin.{module}",
+            class_name=cls,
+            status=status,
+            allocation_pct=pct,
+            since=now,
+        )
+
     return Manifest(
         entries=[
-            StrategyEntry(
-                id="ema_crossover",
-                origin="builtin",
-                module="trading_agent.strategies.builtin.ema_crossover",
-                class_name="EmaCrossover",
-                status="champion",
-                allocation_pct=50,
-                since=now,
+            entry("trend_breakout", "trend_breakout", "TrendBreakout", "champion", 40),
+            entry("tsmom", "tsmom", "TimeSeriesMomentum", "challenger", 20),
+            entry(
+                "new_listing_momentum",
+                "new_listing_momentum",
+                "NewListingMomentum",
+                "challenger",
+                15,
             ),
-            StrategyEntry(
-                id="new_listing_momentum",
-                origin="builtin",
-                module="trading_agent.strategies.builtin.new_listing_momentum",
-                class_name="NewListingMomentum",
-                status="challenger",
-                allocation_pct=20,
-                since=now,
-            ),
-            StrategyEntry(
-                id="mean_reversion",
-                origin="builtin",
-                module="trading_agent.strategies.builtin.mean_reversion",
-                class_name="MeanReversion",
-                status="challenger",
-                allocation_pct=15,
-                since=now,
-            ),
+            entry("mean_reversion", "mean_reversion", "MeanReversion", "challenger", 10),
         ]
     )
 

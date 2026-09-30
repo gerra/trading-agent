@@ -7,7 +7,7 @@ from trading_agent.engine.state import DayStats
 def test_tick_creates_sleeves_snapshots_and_persists_state(container):
     res = container.engine.tick()
     st = container.engine.state
-    assert set(st.sleeves) == {"ema_crossover", "new_listing_momentum", "mean_reversion"}
+    assert set(st.sleeves) == {"trend_breakout", "tsmom", "new_listing_momentum", "mean_reversion"}
     assert st.reserve_cash + sum(s.cash for s in st.sleeves.values()) == 1000.0
     assert res.snapshot.equity == 1000.0
     assert len(list(container.store.read("snapshot"))) == 1
@@ -28,7 +28,7 @@ def test_tick_is_robust_to_strategy_and_market_errors(container, monkeypatch):
 def test_forced_exit_on_stale_position_and_liquidation(container, clock):
     container.engine.tick()
     st = container.engine.state
-    sleeve = st.sleeves["ema_crossover"]
+    sleeve = st.sleeves["trend_breakout"]
     sleeve.positions["kraken:BTC/USD"] = Position(
         symbol="kraken:BTC/USD",
         qty=0.01,
@@ -36,12 +36,12 @@ def test_forced_exit_on_stale_position_and_liquidation(container, clock):
         opened_at=clock.now() - timedelta(days=5),
     )
     sleeve.cash -= 1.0
-    st.sleeves["ema_crossover"] = sleeve
+    st.sleeves["trend_breakout"] = sleeve
     clock.advance(timedelta(minutes=5))
     res = container.engine.tick()
     fills = list(container.store.read("fill"))
     assert res.fills >= 1 and fills[-1].payload["side"] == "sell"
-    assert not container.engine.state.sleeves["ema_crossover"].position("kraken:BTC/USD").is_open
+    assert not container.engine.state.sleeves["trend_breakout"].position("kraken:BTC/USD").is_open
     signal_reasons = [e.payload["reason"] for e in container.store.read("signal")]
     assert "engine: max position age" in signal_reasons
 

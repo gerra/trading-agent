@@ -23,6 +23,7 @@ Structured JSON via structlog to stdout and `data/logs/agent.jsonl`. Key events:
 | `ta_last_tick_timestamp` | gauge | | staleness check |
 | `ta_new_listings_total` | counter | exchange | listings discovered |
 | `ta_evolution_total` | counter | outcome | evolution outcomes |
+| `ta_llm_calls_total` | counter | step | Claude API calls (research / propose) |
 | `ta_job_runs_total`, `ta_job_duration_seconds` | counter/histogram | job(,ok) | scheduler jobs |
 | `ta_halted` | gauge | | 1 when drawdown-halted |
 

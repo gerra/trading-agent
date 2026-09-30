@@ -131,17 +131,17 @@ def test_tune_params_and_schema_errors(settings, clock):
         clock,
         draft(
             kind="tune_params",
-            strategy_id="ema_crossover",
+            strategy_id="trend_breakout",
             source="",
             class_name="",
-            params_json='{"fast": 8, "slow": 30}',
+            params_json='{"channel_bars": 48, "exit_bars": 12}',
         ),
     )
     rec = c.evolution.run()[-1]
     assert rec.outcome == "applied", rec.reason
-    assert c.registry.manifest.get("ema_crossover").params == {"fast": 8, "slow": 30}
+    assert c.registry.manifest.get("trend_breakout").params == {"channel_bars": 48, "exit_bars": 12}
 
-    clock.advance(timedelta(days=1, minutes=1))
+    clock.advance(timedelta(days=settings.evolution.min_days_between_proposals, minutes=1))
     c2 = build_container(
         settings,
         synthetic=True,
@@ -164,7 +164,7 @@ def test_retire_requires_evidence(settings, clock):
     c = build(
         settings,
         clock,
-        draft(kind="retire_strategy", strategy_id="ema_crossover", source="", class_name=""),
+        draft(kind="retire_strategy", strategy_id="trend_breakout", source="", class_name=""),
     )
     rec = c.evolution.run()[-1]
     assert rec.outcome == "rejected" and "champion" in rec.reason
@@ -175,3 +175,27 @@ def test_offline_default_is_no_change(settings, clock):
     rec = c.evolution.run()[-1]
     assert rec.outcome == "no_change"
     assert list(settings.research_dir.glob("*.md"))
+
+
+def test_llm_is_not_called_while_a_generated_challenger_is_under_evaluation(settings, clock):
+    settings.evolution.require_positive_return = False
+    settings.evolution.required_improvement_pct = -100.0
+    c = build(settings, clock, draft())
+    assert c.evolution.run()[-1].outcome == "applied"
+    clock.advance(timedelta(days=settings.evolution.min_days_between_proposals + 1))
+    # still inside promotion_min_days: no LLM call, no new record
+    assert c.evolution.run() == []
+    assert c.metrics.llm_calls.labels(step="propose")._value.get() == 1
+
+
+def test_min_gap_between_proposals_and_research_reuse(settings, clock):
+    settings.evolution.wait_for_pending_challenger = False
+    c = build_container(settings, synthetic=True, clock=clock)  # offline researcher -> no_change
+    assert c.evolution.run()[-1].outcome == "no_change"
+    clock.advance(timedelta(days=1, minutes=1))
+    assert c.evolution.run() == []  # min_days_between_proposals (3) not reached
+    clock.advance(timedelta(days=3))
+    assert c.evolution.run()[-1].outcome == "no_change"
+    # notes were written once and reused on the second call (research_interval_days = 7)
+    assert c.metrics.llm_calls.labels(step="research")._value.get() == 1
+    assert c.metrics.llm_calls.labels(step="propose")._value.get() == 2

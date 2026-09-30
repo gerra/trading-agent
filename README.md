@@ -10,7 +10,7 @@ summary every evening.
 ## 60-second mental model
 
 ```
-                 every 5 min                       every 30 min
+                 every 15 min                      every 30 min
    ┌──────────────────────────────┐      ┌────────────────────────────┐
    │ TradingEngine.tick()         │      │ NewListingTracker.scan()   │
    │  candles → strategies →      │◄─────│  diff exchange market      │
@@ -22,17 +22,22 @@ summary every evening.
    ┌──────────────────────────────┐      ┌────────────────────────────┐
    │ EvolutionLoop.run()  (daily) │      │ DailyReportBuilder (22:00) │
    │  review live results →       │      │  ≤10 bullets → Telegram    │
-   │  research (web) → propose →  │      └────────────────────────────┘
+   │  research (weekly) → propose │      └────────────────────────────┘
    │  sandbox backtest → apply    │
    │  into strategies/generated/  │
    └──────────────────────────────┘
 ```
 
 * **Strategies are pure functions** of candles → signals. They cannot touch money, files or network.
+* **Built-in strategies are low-turnover by design**: Donchian breakout trend-following (champion), time-series
+  momentum with volatility targeting, new-listing momentum, and a mean-reversion challenger. Fast moving-average
+  crossovers are deliberately absent: on 15-minute bars they fire on noise and pay the round-trip cost every time.
 * **Every trade passes the RiskManager**, which knows the exchange's fees and rejects any entry
   whose expected edge does not clear a multiple of the round-trip cost. Fees cannot be forgotten.
 * **Capital is split into sleeves**, one per strategy, so champion vs challenger is a fair fight
   and a bad generated strategy can only lose its own sleeve.
+* **The LLM is called sparingly**: one web-research call per week, one proposal call every few days, and none at all
+  while a freshly added strategy is still being judged on live results (`evolution.*` in settings).
 * **The evolution loop can only write to one directory** (`src/trading_agent/strategies/generated/`)
   and only code that passes an AST allow-list, a resource-limited backtest and a "beat the baseline"
   gate. Every attempt, applied or not, is recorded with its reasoning.

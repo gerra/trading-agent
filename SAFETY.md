@@ -46,7 +46,9 @@ Claude API at the firewall.
 | retire a losing challenger | retire the champion, change allocations of others |
 | git-commit its own change with a fixed author | run arbitrary git or shell commands |
 
-There is one proposal per day by default (`evolution.max_proposals_per_day`), and every attempt,
+LLM calls are budgeted: at most one proposal per `min_days_between_proposals` (default 3), web research at most
+every `research_interval_days` (default 7), and no call while a generated challenger is still under live
+evaluation (`wait_for_pending_challenger`). Every attempt,
 including rejections and errors, is written to `data/events/evolution.jsonl` with the reason.
 
 ## Live trading

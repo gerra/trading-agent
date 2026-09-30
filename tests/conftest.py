@@ -22,7 +22,11 @@ def settings(tmp_path: Path) -> Settings:
         data_dir=tmp_path / "data",
         generated_strategies_dir=tmp_path / "generated",
         exchange={"id": "kraken", "discovery_exchanges": ["kraken"]},
-        universe={"core_symbols": ["kraken:BTC/USD", "kraken:ETH/USD"], "candle_history": 200},
+        universe={
+            "core_symbols": ["kraken:BTC/USD", "kraken:ETH/USD"],
+            "candle_history": 320,
+            "timeframe": "5m",
+        },
         risk={"initial_capital_quote": 1000.0, "min_edge_to_cost_multiple": 1.0},
         evolution={
             "git_commit": False,

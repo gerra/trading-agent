@@ -68,6 +68,12 @@ class Metrics:
             registry=r,
             buckets=(1, 5, 15, 60, 300, 900),
         )
+        self.llm_calls = Counter(
+            "ta_llm_calls_total",
+            "Claude API calls made by the evolution loop",
+            ["step"],
+            registry=r,
+        )
         self.halted = Gauge("ta_halted", "1 when the drawdown breaker halted trading", registry=r)
 
     def observe_snapshot(self, snap: PortfolioSnapshot) -> None:

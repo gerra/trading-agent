@@ -2,8 +2,8 @@ from trading_agent.adapters.market_data.synthetic_market_data import generate_ca
 from trading_agent.backtest.simulator import run_backtest
 from trading_agent.core.fees import DEFAULT_FEE_SCHEDULES
 from trading_agent.settings import RiskSettings
-from trading_agent.strategies.builtin.ema_crossover import EmaCrossover
 from trading_agent.strategies.builtin.mean_reversion import MeanReversion
+from trading_agent.strategies.builtin.trend_breakout import TrendBreakout
 
 
 def test_backtest_runs_and_reports_metrics():
@@ -11,7 +11,14 @@ def test_backtest_runs_and_reports_metrics():
         s: generate_candles(s, 800, "5m", seed=11) for s in ("binance:BTC/USDT", "binance:ETH/USDT")
     }
     risk = RiskSettings(initial_capital_quote=1000, min_edge_to_cost_multiple=1.0)
-    res = run_backtest(EmaCrossover(), candles, risk, DEFAULT_FEE_SCHEDULES, 1000.0, "5m")
+    res = run_backtest(
+        TrendBreakout({"channel_bars": 48, "exit_bars": 12, "min_atr_bps": 0}),
+        candles,
+        risk,
+        DEFAULT_FEE_SCHEDULES,
+        1000.0,
+        "5m",
+    )
     assert res.bars == 800 and len(res.equity_curve) == 800
     assert res.signals > 0
     m = res.metrics()

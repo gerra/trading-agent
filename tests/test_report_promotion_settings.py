@@ -85,7 +85,7 @@ def test_promotion_and_retirement_from_live_results(container, clock):
             snap(
                 t0 + timedelta(days=d),
                 {
-                    "ema_crossover": 500 + d,
+                    "trend_breakout": 500 + d,
                     "new_listing_momentum": 200 + 5 * d,
                     "mean_reversion": 150 - 3 * d,
                 },
@@ -117,7 +117,7 @@ def test_promotion_and_retirement_from_live_results(container, clock):
     assert outcomes["new_listing_momentum"] == "promoted"
     assert outcomes["mean_reversion"] == "demoted"
     assert reg.champion().id == "new_listing_momentum"
-    assert reg.manifest.get("ema_crossover").status == "challenger"
+    assert reg.manifest.get("trend_breakout").status == "challenger"
     assert reg.manifest.get("mean_reversion").status == "retired"
 
 

@@ -30,14 +30,14 @@ class FakeMarkets:
 def test_registry_creates_default_manifest_and_instantiates(tmp_path):
     reg = StrategyRegistry(tmp_path / "m.json", tmp_path / "gen", check_source)
     ids = {e.id for e in reg.active_entries()}
-    assert ids == {"ema_crossover", "new_listing_momentum", "mean_reversion"}
-    assert reg.champion().id == "ema_crossover"
+    assert ids == {"trend_breakout", "tsmom", "new_listing_momentum", "mean_reversion"}
+    assert reg.champion().id == "trend_breakout"
     strategies = reg.instantiate_active()
     assert set(strategies) == ids
-    reg.set_params("ema_crossover", {"fast": 5, "slow": 20})
+    reg.set_params("trend_breakout", {"channel_bars": 96})
     reg2 = StrategyRegistry(tmp_path / "m.json", tmp_path / "gen", check_source)
-    assert reg2.manifest.get("ema_crossover").params == {"fast": 5, "slow": 20}
-    assert reg2.manifest.get("ema_crossover").version == 2
+    assert reg2.manifest.get("trend_breakout").params == {"channel_bars": 96}
+    assert reg2.manifest.get("trend_breakout").version == 2
 
 
 def test_registry_refuses_bad_generated_code_and_escapes(tmp_path):
@@ -71,7 +71,8 @@ def test_registry_refuses_bad_generated_code_and_escapes(tmp_path):
         reg.instantiate(outside)
     reg.add_generated(entry)
     assert reg.instantiate_active().keys() == {
-        "ema_crossover",
+        "trend_breakout",
+        "tsmom",
         "new_listing_momentum",
         "mean_reversion",
     }  # evil skipped, logged

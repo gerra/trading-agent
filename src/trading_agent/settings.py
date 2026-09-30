@@ -41,8 +41,8 @@ class UniverseSettings(BaseModel):
         default_factory=lambda: ["kraken:BTC/USD", "kraken:ETH/USD", "kraken:SOL/USD"],
         description="Instrument keys '<exchange>:<BASE>/<QUOTE>'; quote must be a USD stablecoin",
     )
-    timeframe: str = "5m"
-    candle_history: int = 300
+    timeframe: str = "15m"
+    candle_history: int = 600
     new_listing_max_age_days: int = 14
     max_new_listings_tracked: int = 15
 
@@ -75,6 +75,9 @@ class EvolutionSettings(BaseModel):
     effort: Literal["low", "medium", "high", "xhigh", "max"] = "high"
     web_search_max_uses: int = 8
     max_proposals_per_day: int = 1
+    min_days_between_proposals: int = 3
+    research_interval_days: int = 7
+    wait_for_pending_challenger: bool = True
     challenger_allocation_pct: float = 15.0
     min_backtest_bars: int = 200
     min_backtest_trades: int = 5
@@ -101,7 +104,7 @@ class ReportSettings(BaseModel):
 
 
 class ScheduleSettings(BaseModel):
-    tick_minutes: int = 5
+    tick_minutes: int = 15
     discovery_minutes: int = 30
     evolution_hour_utc: int = 3
     backfill_on_start: bool = True
