@@ -1,0 +1,18 @@
+# --- runtime data (trading logs, market cache, state) - never commit ---
+data/*
+!data/.gitkeep
+# --- secrets ---
+.env
+config/settings.yaml
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# --- misc ---
+.DS_Store

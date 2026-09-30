@@ -1,0 +1,76 @@
+# trading-agent settings. Copy to config/settings.yaml (git-ignored).
+# Every key can also be set via environment: TA_<SECTION>__<KEY>, e.g. TA_RISK__MAX_DAILY_LOSS_PCT=2
+# Secrets are NEVER read from this file: use .env (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, ANTHROPIC_API_KEY).
+
+mode: paper                       # the only supported value
+
+exchange:
+  id: kraken                      # exchange whose fees apply to the core universe (UK-friendly)
+  quote: USD
+  discovery_exchanges: [kraken, binance, coinbase, gateio]   # scanned for new listings (public data)
+  request_timeout_s: 20
+  fees:                           # basis points; deliberately pessimistic lowest-tier retail numbers
+    kraken:   {exchange: kraken,   maker_bps: 25, taker_bps: 40, slippage_bps: 10, min_order_quote: 5}
+    coinbase: {exchange: coinbase, maker_bps: 40, taker_bps: 60, slippage_bps: 10, min_order_quote: 1}
+    binance:  {exchange: binance,  maker_bps: 10, taker_bps: 10, slippage_bps: 8,  min_order_quote: 5}
+    gateio:   {exchange: gateio,   maker_bps: 20, taker_bps: 20, slippage_bps: 15, min_order_quote: 3}
+    bitstamp: {exchange: bitstamp, maker_bps: 30, taker_bps: 40, slippage_bps: 10, min_order_quote: 10}
+    mexc:     {exchange: mexc,     maker_bps: 0,  taker_bps: 5,  slippage_bps: 20, min_order_quote: 1}
+
+universe:
+  core_symbols: ["kraken:BTC/USD", "kraken:ETH/USD", "kraken:SOL/USD"]   # '<exchange>:<BASE>/<QUOTE>'
+  timeframe: 5m
+  candle_history: 300             # bars fetched per tick
+  new_listing_max_age_days: 14    # how long a listing counts as "new"
+  max_new_listings_tracked: 15
+
+risk:
+  initial_capital_quote: 1000     # paper capital
+  max_position_pct_of_sleeve: 0.25
+  max_open_positions_per_sleeve: 4
+  min_edge_to_cost_multiple: 2.0  # expected edge must be >= 2x round-trip cost (fees + slippage)
+  max_daily_loss_pct: 3.0         # breaker: blocks new entries for the day
+  max_drawdown_pct: 12.0          # breaker: halts trading until `trading-agent resume`
+  max_daily_fees_pct_of_equity: 0.5
+  max_trades_per_day_per_sleeve: 12
+  max_position_age_hours: 72      # engine force-exits older positions
+
+evolution:
+  enabled: true
+  model: claude-opus-5-5
+  effort: high                    # low | medium | high | xhigh | max
+  web_search_max_uses: 8
+  max_proposals_per_day: 1
+  challenger_allocation_pct: 15   # % of initial capital a new generated strategy gets
+  min_backtest_bars: 200
+  max_backtest_bars: 3000
+  min_backtest_trades: 5
+  required_improvement_pct: 0.5   # candidate must beat baseline return by this many pp
+  require_positive_return: true
+  max_backtest_drawdown_pct: 15.0
+  max_backtest_fees_pct: 5.0
+  promotion_min_days: 5
+  min_live_trades_for_promotion: 5
+  promote_margin_pct: 1.0
+  retire_loss_pct: 5.0
+  retire_margin_pct: 3.0
+  subprocess_timeout_s: 120
+  subprocess_memory_mb: 512
+  git_commit: true
+
+report:
+  hour: 22
+  minute: 0
+  timezone: Europe/London
+  max_bullets: 10
+
+schedule:
+  tick_minutes: 5
+  discovery_minutes: 30
+  evolution_hour_utc: 3
+  backfill_on_start: true
+
+observability:
+  metrics_port: 9100
+  log_level: INFO
+  json_logs: true

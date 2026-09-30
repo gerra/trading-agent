@@ -1,0 +1,17 @@
+groups:
+  - name: trading-agent
+    rules:
+      - alert: TradingAgentStale
+        expr: time() - ta_last_tick_timestamp > 900
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "No trading tick for 15 minutes"}
+      - alert: TradingAgentHalted
+        expr: ta_halted == 1
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: "Drawdown breaker halted trading; run `trading-agent resume` after review"}
+      - alert: TradingAgentJobFailures
+        expr: increase(ta_job_runs_total{ok="false"}[1h]) > 2
+        labels: {severity: warning}
+        annotations: {summary: "Scheduled jobs failing repeatedly"}
